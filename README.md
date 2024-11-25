@@ -13,6 +13,9 @@ Vulnhuntr leverages the power of LLMs to automatically create and analyze entire
 
 ## Vulnerabilities Found
 
+> [!TIP]
+> Found a vulnerability using Vulnhuntr? Submit a report to [huntr.com](https://huntr.com) to get $$ and submit a PR to add it to the list below!
+
 > [!NOTE]
 > This table is just a sample of the vulnerabilities found so far. We will unredact as responsible disclosure periods end.
 
@@ -47,26 +50,24 @@ Vulnhuntr leverages the power of LLMs to automatically create and analyze entire
 We recommend using [pipx](https://github.com/pypa/pipx) or Docker to easily install and run Vulnhuntr.
 
 Using Docker:
-
-```	
+```bash
 docker build -t vulnhuntr https://github.com/protectai/vulnhuntr.git#main
 ```
 
 Using pipx:
-
 ```bash
-pipx install git+https://github.com/protectai/vulnhuntr.git
+pipx install git+https://github.com/protectai/vulnhuntr.git --python python3.10
 ```
 
 Alternatively you can install directly from source using poetry:
-```
+```bash
 git clone https://github.com/protectai/vulnhuntr
 cd vulnhuntr && poetry install
 ```
 
 ## Usage
 
-This tool is designed to analyze a GitHub repository for potential remotely exploitable vulnerabilities. The tool requires an API key for the LLM service (GPT or Claude) and the URL of the GitHub repository or the path to a local folder.
+This tool is designed to analyze a GitHub repository for potential remotely exploitable vulnerabilities. The tool requires an API key and the local path to a GitHub repository. You may also optionally specify a custom endpoint for the LLM service.
 
 > [!CAUTION]
 > Always set spending limits or closely monitor costs with the LLM provider you use. This tool has the potential to rack up hefty bills as it tries to fit as much code in the LLMs context window as possible. 
@@ -77,37 +78,52 @@ This tool is designed to analyze a GitHub repository for potential remotely expl
 ### Command Line Interface
 
 ```
-usage: vulnhuntr.py [-h] -r ROOT [-a ANALYZE] [-l {claude,gpt}] [-v]
+usage: vulnhuntr [-h] -r ROOT [-a ANALYZE] [-l {claude,gpt,ollama}] [-v]
 
-Analyze a GitHub project for vulnerabilities. Export your ANTHROPIC_API_KEY before running.
+Analyze a GitHub project for vulnerabilities. Export your ANTHROPIC_API_KEY/OPENAI_API_KEY before running.
 
 options:
   -h, --help            show this help message and exit
   -r ROOT, --root ROOT  Path to the root directory of the project
   -a ANALYZE, --analyze ANALYZE
                         Specific path or file within the project to analyze
-  -l {claude,gpt}, --llm {claude,gpt}
+  -l {claude,gpt,ollama}, --llm {claude,gpt,ollama}
                         LLM client to use (default: claude)
   -v, --verbosity       Increase output verbosity (-v for INFO, -vv for DEBUG)
 ```
-### Example
-
-Export your `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` before running.
-
-Analyze the entire repository using Claude:
+### Examples
+From a pipx install, analyze the entire repository using Claude:
 
 ```bash
-python vulnhuntr.py -r /path/to/target/repo/
+export ANTHROPIC_API_KEY="sk-1234"
+vulnhuntr -r /path/to/target/repo/
 ```
 
 > [!TIP]
 > We recommend giving Vulnhuntr specific files that handle remote user input and scan them individually.
 
-Below analyzes the `/path/to/target/repo/server.py` file using GPT-4o. Can also specify a subdirectory instead of a file:
+From a pipx install, analyze the `/path/to/target/repo/server.py` file using GPT-4o. Can also specify a subdirectory instead of a file:
 
 ```bash
-python vulnhuntr.py -r /path/to/target/repo/ -a server.py -l gpt 
+export OPENAI_API_KEY="sk-1234"
+vulnhuntr -r /path/to/target/repo/ -a server.py -l gpt 
 ```
+
+From a docker installation, run using Claude and a custom endpoint to analyze /local/path/to/target/repo/repo-subfolder/target-file.py:
+
+```bash
+docker run --rm -e ANTHROPIC_API_KEY=sk-1234 -e ANTHROPIC_BASE_URL=https://localhost:1234/api -v /local/path/to/target/repo:/repo vulnhuntr:latest -r /repo -a repo-subfolder/target-file.py
+```
+
+*Experimental*
+
+Ollama is included as an option, however we haven't had success with the open source models structuring their output correctly.
+
+```bash
+export OLLAMA_BASE_URL=http://localhost:11434/api/generate
+export OLLAMA_MODEL=llama3.2
+vulnhuntr -r /path/to/target/repo/ -a server.py -l ollama
+``` 
 
 ## Logic Flow
 ![VulnHuntr logic](https://github.com/user-attachments/assets/7757b053-36ff-425e-ab3d-ab0100c81d49)
@@ -131,7 +147,7 @@ The tool generates a detailed report of the vulnerabilities found in the analyze
 - Logs of the analysis process.
 - PoC exploit
 
-Below is an example of a Vulnhuntr report describing a 0day remote code execution vulnerability in [Ragflow](https://github.com/infiniflow/ragflow) (now fixed):
+Below is an example of a Vulnhuntr report describing a 0-day remote code execution vulnerability in [Ragflow](https://github.com/infiniflow/ragflow) (now fixed):
 
 ```
 scratchpad:
@@ -184,6 +200,7 @@ vulnerability_types:
 ## Logging
 
 The tool logs the analysis process and results in a file named `vulhuntr.log`. This file contains detailed information about each step of the analysis, including the initial and secondary assessments.
+
 
 ## Authors
 
